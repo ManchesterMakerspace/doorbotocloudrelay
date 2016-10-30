@@ -90,6 +90,7 @@ var serve = {                                                // depends on cooki
         app.use(serve.parse.urlencoded({extended: true}));   // support URL-encoded bodies
         app.use(serve.express.static(__dirname + '/views')); // serve page dependancies (sockets, jquery, bootstrap)
         var router = serve.express.Router();                 // create express router object to add routing events to
+        router.get('/', function(req, res){res.send('Everything is going to be ok kid, Everythings going to be OKAY');});
         router.post('/ipnlistener', paypal.listenEvent);     // request registration page
         app.use(router);                                     // get express to user the routes we set
         return http;
