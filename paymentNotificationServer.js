@@ -22,7 +22,7 @@ var paypal = {
     querystring: require('querystring'),
     options: function (postreq, isSandbox){
         return {
-            uri: isSandbox ? 'www.sandbox.paypal.com/cgi-bin/webscr' : 'www.paypal.com/cgi-bin/webscr',
+            uri: isSandbox ? 'https://www.sandbox.paypal.com/cgi-bin/webscr' : 'https://www.paypal.com/cgi-bin/webscr',
             method: 'POST',
             headers:{'Connection': 'close'},
             body: postreq,
