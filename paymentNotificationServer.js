@@ -62,26 +62,6 @@ var paypal = {
     }
 };
 
-/*var paypal = {                             // Must respond to PayPal IPN request with an empty 200 first
-    ipn: require('paypal-ipn'),            // library for IPN verification
-    listenEvent: function(res, req){
-        res.status(200).send('OK'); // ??
-        // res.status(200, 'OK'); // when does this really need to be done?
-        paypal.ipn.verify(req.body, {'allow_sandbox': true}, paypal.IPNvarified);
-    },
-    IPNvarified: function(error, msg){
-        if(error){
-            console.log(error);
-        } else {
-            // do the things
-            if(params.payment_status === 'Completed'){
-                console.log('someone just made a payment:'+ msg);
-                // Completed payment
-            }
-        }
-    }
-};*/
-
 var serve = {                                                // depends on cookie, routes, handles express server setup
     express: require('express'),                             // server framework library
     parse: require('body-parser'),                           // middleware to parse JSON bodies
