@@ -1,1 +1,1 @@
-web: node paymentNotificationRelay.js
+web: node paymentNotificationServer.js
