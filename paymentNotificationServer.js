@@ -19,7 +19,7 @@ var sockets = {                                             // instantiate socke
 
 var paypal = {
     request: require('request'),
-    querystirng: require('querystring'),
+    querystring: require('querystring'),
     options: function (postreq, isSandbox){
         return {
             host: isSandbox ? 'www.sandbox.paypal.com' : 'www.paypal.com',
