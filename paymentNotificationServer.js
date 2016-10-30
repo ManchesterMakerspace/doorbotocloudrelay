@@ -49,7 +49,7 @@ var paypal = {
         return function(error, response, body){
             if(error){
                 console.log('response error:' + error);
-            } else if(response.stautsCode === 200){
+            } else if(response.statusCode === 200){
                 if(body.substring(0, 8) === 'VERIFIED'){
                     console.log(JSON.stringify(originalBody));
                 } else if (body.substring(0, 7) === 'INVALID') {
