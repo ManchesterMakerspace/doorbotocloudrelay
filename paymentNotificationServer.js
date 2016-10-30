@@ -55,6 +55,8 @@ var paypal = {
                 } else if (body.substring(0, 7) === 'INVALID') {
                     console.log('Invalid IPN!'.error); // IPN invalid, log for manual investigation
                 }
+            } else {
+                console.log('got status code: ' + response.statusCode);
             }
         };
     }
