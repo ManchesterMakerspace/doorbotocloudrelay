@@ -61,22 +61,20 @@ var paypal = {
             paypal.request(paypal.options(postreq, process.env.TESTING_STATE), paypal.requestResponse(req.body));
         }
     },
-    requestResponse: function(originalBody){
+    requestResponse: function(oBody){
         return function(error, response, body){
             if(error){
-                console.log('response error:' + error);
-                slack.send('IPN response issue:' + error);
+                slack.sendAndLog('IPN response issue:' + error);
             } else if(response.statusCode === 200){
                 if(body.substring(0, 8) === 'VERIFIED'){
-                    console.log(JSON.stringify(originalBody));
-                    slack.send('IPN POST: ' + JSON.stringify(originalBody));
+                    // slack.sendAndLog('IPN POST: ' + JSON.stringify(originalBody));
+                    slack.sendAndLog(oBody.mc_gross + ' dollar pament made for ' + oBody.item_name + ' from ' + oBody.first_name + ' ' + oBody.last_name + ':original body');
+                    slack.sendAndLog(body.mc_gross + ' dollar pament made for ' + body.item_name + ' from ' + body.first_name + ' ' + body.last_name + ':response body');
                 } else if (body.substring(0, 7) === 'INVALID') {
-                    console.log('Invalid IPN!'); // IPN invalid, log for manual investigation
-                    slack.send('Invalid IPN POST');
+                    slack.sendAndLog('Invalid IPN POST'); // IPN invalid, log for manual investigation
                 }
             } else {
-                console.log('got status code: ' + response.statusCode);
-                slack.send('IPN post, other code: ' + response.statusCode);
+                slack.sendAndLog('IPN post, other code: ' + response.statusCode);
             }
         };
     }

@@ -16,8 +16,12 @@ var slack = {
         } catch(e){console.log('no connection to slack:' + e);} // handle not being connected
     },
     send: function(msg){
-        try      {slack.wh.send(msg);}                                    // try to send
-        catch (e){console.log('slack: No Sendy:'+ msg + ' - Cause:'+ e);} // fail softly if slack or internet is down
+        try         {slack.wh.send(msg);}                                        // try to send
+        catch(error){console.log('slack: No Sendy:'+ msg + ' - Cause:'+ error);} // fail softly if slack or internet is down
+    },
+    sendAndLog: function(msg){
+        slack.send(msg);
+        console.log(msg);
     },
     invite: function(email, newMember){
         try { // there are no errors only unexpected results
