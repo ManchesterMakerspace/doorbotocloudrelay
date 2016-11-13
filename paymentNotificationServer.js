@@ -1,19 +1,35 @@
 //paymentNotificationServer.js
-// var slack = require('./slack_intergration.js'); // not sure if it really works this way?
+var slack = require('./slack_intergration.js');            // import our slack module
 
-var sockets = {                                             // instantiate socket server
-    server: require('socket.io'),                            // grab socket.io library
+var sockets = {                                            // instantiate socket server
+    server: require('socket.io'),                          // grab socket.io library
+    doorbotoID: null,
     listen: function(server){                              // create server and setup on connection event
         sockets.server = sockets.server(server);           // pass in http server to connect to
         sockets.server.on('connection', function(socket){  // when a client connects
-            socket.on('authenticate', socket.authenticate);// make sure who is trying to connect with us knows our secret
+            socket.on('authenticate', socket.authenticate(socket));// make sure who is trying to connect with us knows our secret
         });
     },
-    authenticate: function(secret){ // not that it matters to much if you send it in plain text over the wire
-        if(secret === process.env.SOCKET_TOKEN){ // only make responses to those that know our secret
-            // socket.on('newMember', member.register);       // in event of new registration
-            // socket.on('doorEvent', member.entry);
-        }
+    authenticate: function(socket){ // not that it matters to much if you send it in plain text over the wire
+        return function(token){
+            if(token === process.env.DOORBOTO_TOKEN){ // make sure we are connected with one doorboto
+                if(sockets.doorboto){                 // dafaq? will the real doorboto please stand up
+                    console.log('someone else wants to be doorboto?');
+                } else {                              // given this is one doorboto
+                    sockets.doorbotoID = socket.id;
+                    // socket.on('newMember', member.register);       // in event of new registration
+                    // socket.on('doorEvent', member.entry);
+                    socket.on('disconnect', sockets.doorbotoDisconnect);
+                }
+            } else {
+                console.log('Rando socket connected: ' + socket.id);
+                socket.on('disconnect', function(){console.log('Rando socket disconnected: ' + socket.id);});
+            }
+        };
+    },
+    disconnect: function(){
+        sockets.doorbotoID = null; // takes doorbotos old socket.id out of memory to allow him to reconnect
+        // make want to tell slack channel that doorboto just got disconnected
     }
 };
 
@@ -49,14 +65,18 @@ var paypal = {
         return function(error, response, body){
             if(error){
                 console.log('response error:' + error);
+                slack.send('IPN response issue:' + error);
             } else if(response.statusCode === 200){
                 if(body.substring(0, 8) === 'VERIFIED'){
                     console.log(JSON.stringify(originalBody));
+                    slack.send('IPN POST: ' + JSON.stringify(originalBody));
                 } else if (body.substring(0, 7) === 'INVALID') {
-                    console.log('Invalid IPN!'.error); // IPN invalid, log for manual investigation
+                    console.log('Invalid IPN!'); // IPN invalid, log for manual investigation
+                    slack.send('Invalid IPN POST');
                 }
             } else {
                 console.log('got status code: ' + response.statusCode);
+                slack.send('IPN post, other code: ' + response.statusCode);
             }
         };
     }
@@ -80,6 +100,6 @@ var serve = {                                                // depends on cooki
 };
 
 var http = serve.theSite();     // set express middleware and routes up
-// sockets.listen(http);            // listen and handle socket connections
+sockets.listen(http);           // listen and handle socket connections
 http.listen(process.env.PORT);  // listen on specified PORT enviornment variable
-// slack.init();
+slack.init('test_channel');     // intilize slack bot to talk to x channel

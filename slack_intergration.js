@@ -5,15 +5,14 @@ var slack = {
     request: require('request'),                       // needed to make post request to slack api
     token: process.env.SLACK_TOKEN,                    // authentication to post as and invidual (in this case an admin user is needed to inivite new members)
     wh: null,                                          // webhook connection object if successfully connected
-    init: function(){                                  // runs only once on server start up (may be we should timeout retrys)
+    init: function(channelToSentTo){                                  // runs only once on server start up (may be we should timeout retrys)
         try {                                          // slack is not a dependancy, will fail softly if no internet or slack
             slack.wh = new slack.webhook(process.env.SLACK_WEBHOOK_URL, { // instantiate webhook (bot) w/ its url and profile
                 username: 'doorboto',                  // Name of bot
-                channel: 'whos_at_the_space',          // channel that this intergration spams in particular
+                channel: channelToSentTo,              // channel that this intergration spams in particular
                 iconEmoji: ':robot_face:',             // icon emoji that bot uses for a profile picture
-                defaultText: 'domo arigato ka?'        // message that gets sent when no value is passed to send
             });
-            slack.wh.send('doorboto started');         // Notes that server just started or restarted
+            slack.wh.send('IPN listener started');     // Notes that server just started or restarted
         } catch(e){console.log('no connection to slack:' + e);} // handle not being connected
     },
     send: function(msg){
@@ -26,7 +25,6 @@ var slack = {
             // Channels - general, random, who_at_the_space , 36_old_granite, talk_to_the_board, automotive, electronics, rapid p, wood, metal
             var emailReq = '&email=' + email;               // NOTE: has to be a valid email, no + this or that
             var inviteAddress = 'https://slack.com/api/users.admin.invite?token=' + slack.token + emailReq + channels;
-            console.log(inviteAddress);
             slack.request.post(inviteAddress, function(error, response, body){
                 var msg = 'NOT MADE';                       // default to returning a possible error message
                 if(error){slack.failedInvite(error);}       // post request error
