@@ -69,8 +69,8 @@ var paypal = {
                 if(body.substring(0, 8) === 'VERIFIED'){
                     // slack.sendAndLog('IPN POST: ' + JSON.stringify(originalBody));
                     slack.sendAndLog(
-                        oBody.mc_gross, ' dollar pament made for ', oBody.item_name1, '/', oBody.item_name, ' from ', oBody.first_name,
-                        ' ', oBody.last_name, ':original body'
+                        oBody.mc_gross +' dollar pament made for ' + oBody.item_name1 + '/' + oBody.item_name + ' from ' +
+                        oBody.first_name + ' ' + oBody.last_name + ':original body'
                     );
                 } else if (body.substring(0, 7) === 'INVALID') {
                     slack.sendAndLog('Invalid IPN POST'); // IPN invalid, log for manual investigation
