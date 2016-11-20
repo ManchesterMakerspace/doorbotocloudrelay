@@ -67,11 +67,10 @@ var paypal = {
                 slack.sendAndLog('IPN response issue:' + error);
             } else if(response.statusCode === 200){
                 if(body.substring(0, 8) === 'VERIFIED'){
-                    // slack.sendAndLog('IPN POST: ' + JSON.stringify(originalBody));
-                    slack.sendAndLog(
-                        oBody.mc_gross +' dollar pament made for ' + oBody.item_name1 + '/' + oBody.item_name + ' from ' +
-                        oBody.first_name + ' ' + oBody.last_name + ':original body'
-                    );
+                    var itemName = 'no item name';
+                    if(oBody.item_name){itemName = oBody.item_name;}
+                    else if (oBody.item_name1){itemName = oBody.item_name1;}
+                    slack.sendAndLog('$'+ oBody.mc_gross +' pament for '+ itemName +' from '+ oBody.first_name +' '+ oBody.last_name);
                 } else if (body.substring(0, 7) === 'INVALID') {
                     slack.sendAndLog('Invalid IPN POST'); // IPN invalid, log for manual investigation
                 }
