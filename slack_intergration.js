@@ -5,14 +5,14 @@ var slack = {
     request: require('request'),                       // needed to make post request to slack api
     token: process.env.SLACK_TOKEN,                    // authentication to post as and invidual (in this case an admin user is needed to inivite new members)
     wh: null,                                          // webhook connection object if successfully connected
-    init: function(channelToSentTo){                                  // runs only once on server start up (may be we should timeout retrys)
+    init: function(channelToSentTo, startUpMsg){       // runs only once on server start up (may be we should timeout retrys)
         try {                                          // slack is not a dependancy, will fail softly if no internet or slack
             slack.wh = new slack.webhook(process.env.SLACK_WEBHOOK_URL, { // instantiate webhook (bot) w/ its url and profile
                 username: 'doorboto',                  // Name of bot
                 channel: channelToSentTo,              // channel that this intergration spams in particular
                 iconEmoji: ':robot_face:',             // icon emoji that bot uses for a profile picture
             });
-            slack.wh.send('IPN listener started');     // Notes that server just started or restarted
+            slack.wh.send(startUpMsg);     // Notes that server just started or restarted
         } catch(e){console.log('no connection to slack:' + e);} // handle not being connected
     },
     send: function(msg){

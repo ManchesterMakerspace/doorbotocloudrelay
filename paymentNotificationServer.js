@@ -1,4 +1,4 @@
-//paymentNotificationServer.js
+// paymentNotificationServer.js ~ Copyright 2016 Mancehster Makerspace ~ MIT License
 var slack = require('./slack_intergration.js');            // import our slack module
 
 var sockets = {                                            // instantiate socket server
@@ -68,8 +68,10 @@ var paypal = {
             } else if(response.statusCode === 200){
                 if(body.substring(0, 8) === 'VERIFIED'){
                     // slack.sendAndLog('IPN POST: ' + JSON.stringify(originalBody));
-                    slack.sendAndLog(oBody.mc_gross + ' dollar pament made for ' + oBody.item_name + ' from ' + oBody.first_name + ' ' + oBody.last_name + ':original body');
-                    slack.sendAndLog(body.mc_gross + ' dollar pament made for ' + body.item_name + ' from ' + body.first_name + ' ' + body.last_name + ':response body');
+                    slack.sendAndLog(
+                        oBody.mc_gross, ' dollar pament made for ', oBody.item_name1, '/', oBody.item_name, ' from ', oBody.first_name,
+                        ' ', oBody.last_name, ':original body'
+                    );
                 } else if (body.substring(0, 7) === 'INVALID') {
                     slack.sendAndLog('Invalid IPN POST'); // IPN invalid, log for manual investigation
                 }
@@ -97,7 +99,7 @@ var serve = {                                                // depends on cooki
     }
 };
 
-var http = serve.theSite();     // set express middleware and routes up
-sockets.listen(http);           // listen and handle socket connections
-http.listen(process.env.PORT);  // listen on specified PORT enviornment variable
-slack.init('test_channel');     // intilize slack bot to talk to x channel
+var http = serve.theSite();                                  // set express middleware and routes up
+sockets.listen(http);                                        // listen and handle socket connections
+http.listen(process.env.PORT);                               // listen on specified PORT enviornment variable
+slack.init('test_channel', 'IPN listener started');          // intilize slack bot to talk to x channel, w/ x startup message
