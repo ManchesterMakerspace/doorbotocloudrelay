@@ -2,7 +2,7 @@
 var slack = require('./our_modules/slack_intergration.js');// import our slack module
 var crypto = require('./our_modules/crypto.js');           // abstracted message scrambling
 var URI = 'https://www.paypal.com/cgi-bin/webscr';
-if(process.env.TESTING_STATE){URI = 'https://www.sandbox.paypal.com/cgi-bin/webscr';}
+if(process.env.TESTING_STATE === 'false'){URI = 'https://www.sandbox.paypal.com/cgi-bin/webscr';}
 console.log('listending for ' + URI); // just to be sure we know in the log what we intended to be listening to
 
 var sockets = {                                            // instantiate socket server
