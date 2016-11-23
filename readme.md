@@ -26,6 +26,10 @@ to test locally? put this in an start.sh in this repos directory and chmod +x st
     SLACK_WEBHOOK_URL="goeshere"
     export SLACK_WEBHOOK_URL
 
+    # have a channel to broadcast on
+    BROADCAST_CHANNEL="test_channel"
+    export BROADCAST_CHANNEL
+
     # this is needed for the slack invite feature
     SLACK_TOKEN="goeshere"
     export SLACK_TOKEN

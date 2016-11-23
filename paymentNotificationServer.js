@@ -1,5 +1,6 @@
 // paymentNotificationServer.js ~ Copyright 2016 Mancehster Makerspace ~ MIT License
-var slack = require('./slack_intergration.js');            // import our slack module
+var slack = require('./our_modules/slack_intergration.js');// import our slack module
+var crypto = require('./our_modules/crypto.js');           // abstracted message scrambling
 
 var sockets = {                                            // instantiate socket server
     server: require('socket.io'),                          // grab socket.io library
@@ -70,7 +71,8 @@ var paypal = {
                     var itemName = 'no item name';
                     if(oBody.item_name){itemName = oBody.item_name;}
                     else if (oBody.item_name1){itemName = oBody.item_name1;}
-                    slack.sendAndLog('$'+ oBody.mc_gross +' pament for '+ itemName +' from '+ oBody.first_name +' '+ oBody.last_name);
+                    console.log(JSON.stringify(oBody));   // get an idea of data we are dealing with
+                    slack.send('$'+ oBody.mc_gross +' pament for '+ itemName +' from '+ oBody.first_name +' '+ oBody.last_name);
                 } else if (body.substring(0, 7) === 'INVALID') {
                     slack.sendAndLog('Invalid IPN POST'); // IPN invalid, log for manual investigation
                 }
