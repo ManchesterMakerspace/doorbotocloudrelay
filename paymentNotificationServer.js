@@ -2,7 +2,7 @@
 var slack = require('./our_modules/slack_intergration.js');// import our slack module
 var crypto = require('./our_modules/crypto.js');           // abstracted message scrambling
 var URI = 'https://www.paypal.com/cgi-bin/webscr';
-if(isSandbox){URI = 'https://www.sandbox.paypal.com/cgi-bin/webscr';}
+if(process.env.TESTING_STATE){URI = 'https://www.sandbox.paypal.com/cgi-bin/webscr';}
 console.log('listending for '+ uri); // just to be sure we know in the log what we intended to be listening to
 
 var sockets = {                                            // instantiate socket server
@@ -40,7 +40,7 @@ var sockets = {                                            // instantiate socket
 var paypal = {
     request: require('request'),
     querystring: require('querystring'),
-    options: function (postreq, isSandbox){
+    options: function (postreq){
         return {
             uri: URI,
             method: 'POST',
@@ -62,7 +62,7 @@ var paypal = {
                     postreq = postreq + key + '=' + paypal.querystring.escape(req.body[key]); // build new post body
                 }
             } // Prove they sent what they think they sent you, post it back to them
-            paypal.request(paypal.options(postreq, process.env.TESTING_STATE), paypal.requestResponse(req.body));
+            paypal.request(paypal.options(postreq), paypal.requestResponse(req.body));
         }
     },
     requestResponse: function(oBody){
