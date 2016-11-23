@@ -1,6 +1,9 @@
 // paymentNotificationServer.js ~ Copyright 2016 Mancehster Makerspace ~ MIT License
 var slack = require('./our_modules/slack_intergration.js');// import our slack module
 var crypto = require('./our_modules/crypto.js');           // abstracted message scrambling
+var URI = 'https://www.paypal.com/cgi-bin/webscr';
+if(isSandbox){URI = 'https://www.sandbox.paypal.com/cgi-bin/webscr';}
+console.log('listending for '+ uri); // just to be sure we know in the log what we intended to be listening to
 
 var sockets = {                                            // instantiate socket server
     server: require('socket.io'),                          // grab socket.io library
@@ -38,11 +41,8 @@ var paypal = {
     request: require('request'),
     querystring: require('querystring'),
     options: function (postreq, isSandbox){
-        var uri = 'https://www.paypal.com/cgi-bin/webscr';
-        if(isSandbox){uri = 'https://www.sandbox.paypal.com/cgi-bin/webscr';}
-        console.log('listending for '+ uri); // just to be sure we know in the log what we intended to be listening to
         return {
-            uri: uri,
+            uri: URI,
             method: 'POST',
             headers:{'Connection': 'close'},
             body: postreq,
