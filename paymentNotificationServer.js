@@ -38,8 +38,11 @@ var paypal = {
     request: require('request'),
     querystring: require('querystring'),
     options: function (postreq, isSandbox){
+        var uri = 'https://www.paypal.com/cgi-bin/webscr';
+        if(isSandbox){uri = 'https://www.sandbox.paypal.com/cgi-bin/webscr';}
+        console.log('listending for '+ uri); // just to be sure we know in the log what we intended to be listening to
         return {
-            uri: isSandbox ? 'https://www.sandbox.paypal.com/cgi-bin/webscr' : 'https://www.paypal.com/cgi-bin/webscr',
+            uri: uri,
             method: 'POST',
             headers:{'Connection': 'close'},
             body: postreq,
@@ -53,10 +56,10 @@ var paypal = {
         if(req.body){                             // given we have some body
             res.status(200).send('OK');           // Step 1 ACK notification
             res.end();                            // end response
-            var postreq = 'cmd=_notify-validate'; // step 2 read ipn message and prepend with _notify-validate and post back to paypal
-            for(var key in req.body){
+            var postreq = 'cmd=_notify-validate&';// step 2 read ipn message and prepend with _notify-validate and post back to paypal
+            for(var key in req.body){             // not quite sure that this is right
                 if(req.body.hasOwnProperty(key)){ // for all keys
-                    postreq = postreq + '&' + key + '=' + paypal.querystring.escape(req.body[key]); // build new post body
+                    postreq = postreq + key + '=' + paypal.querystring.escape(req.body[key]); // build new post body
                 }
             } // Prove they sent what they think they sent you, post it back to them
             paypal.request(paypal.options(postreq, process.env.TESTING_STATE), paypal.requestResponse(req.body));
