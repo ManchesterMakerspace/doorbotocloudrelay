@@ -56,10 +56,10 @@ var paypal = {
         if(req.body){                             // given we have some body
             res.status(200).send('OK');           // Step 1 ACK notification
             res.end();                            // end response
-            var postreq = 'cmd=_notify-validate&';// step 2 read ipn message and prepend with _notify-validate and post back to paypal
+            var postreq = 'cmd=_notify-validate'; // step 2 read ipn message and prepend with _notify-validate and post back to paypal
             for(var key in req.body){             // not quite sure that this is right
                 if(req.body.hasOwnProperty(key)){ // for all keys
-                    postreq = postreq + key + '=' + paypal.querystring.escape(req.body[key]); // build new post body
+                    postreq = postreq + '&' + key + '=' + paypal.querystring.escape(req.body[key]); // build new post body
                 }
             } // Prove they sent what they think they sent you, post it back to them
             paypal.request(paypal.options(postreq), paypal.requestResponse(req.body));
@@ -106,4 +106,4 @@ var serve = {                                                // depends on cooki
 var http = serve.theSite();                                  // set express middleware and routes up
 sockets.listen(http);                                        // listen and handle socket connections
 http.listen(process.env.PORT);                               // listen on specified PORT enviornment variable
-slack.init('test_channel', 'IPN listener started');          // intilize slack bot to talk to x channel, w/ x startup message
+slack.init(process.env.BROADCAST_CHANNEL, 'IPN listener restarted'); // intilize slack bot to talk to x channel, w/ x startup message
