@@ -18,10 +18,6 @@ to test locally? put this in an start.sh in this repos directory and chmod +x st
     SOCKET_TOKEN="supersecretsecret
     export SOCKET_TOKEN
 
-    # might not need this since paypal is sending info to us we verify if its any good
-    PAYPAL_TOKEN="goeshere"
-    export PAYPAL_TOKEN
-
     # Url to webhook that acts as a slack bot
     SLACK_WEBHOOK_URL="goeshere"
     export SLACK_WEBHOOK_URL
@@ -29,10 +25,6 @@ to test locally? put this in an start.sh in this repos directory and chmod +x st
     # have a channel to broadcast on
     BROADCAST_CHANNEL="test_channel"
     export BROADCAST_CHANNEL
-
-    # this is needed for the slack invite feature
-    SLACK_TOKEN="goeshere"
-    export SLACK_TOKEN
 
     # auto restart on changes w/ nodemon
     nodemon paymentNotificationServer.js
