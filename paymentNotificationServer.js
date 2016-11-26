@@ -106,4 +106,5 @@ var serve = {                                                // depends on cooki
 var http = serve.theSite();                                  // set express middleware and routes up
 sockets.listen(http);                                        // listen and handle socket connections
 http.listen(process.env.PORT);                               // listen on specified PORT enviornment variable
-slack.init(process.env.BROADCAST_CHANNEL, 'IPN listener restarted'); // intilize slack bot to talk to x channel, w/ x startup message
+// intilize slack bot to talk to x channel, w/ x startup message
+slack.init(process.env.BROADCAST_CHANNEL, 'IPN Restart, testing= ' + process.env.TESTING_STATE);
