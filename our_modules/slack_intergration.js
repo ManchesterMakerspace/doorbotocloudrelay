@@ -3,17 +3,19 @@
 var slack = {
     webhook: require('@slack/client').IncomingWebhook, // url to slack intergration called "webhook" can post to any channel as a "bot"
     request: require('request'),                       // needed to make post request to slack api
-    token: process.env.SLACK_TOKEN,                    // authentication to post as and invidual (in this case an admin user is needed to inivite new members)
-    wh: null,                                          // webhook connection object if successfully connected
-    init: function(channelToSentTo, startUpMsg){       // runs only once on server start up (may be we should timeout retrys)
+    init: function(webhookURL, channelToSentTo, token){// runs only once on server start up (may be we should timeout retrys)
         try {                                          // slack is not a dependancy, will fail softly if no internet or slack
-            slack.wh = new slack.webhook(process.env.SLACK_WEBHOOK_URL, { // instantiate webhook (bot) w/ its url and profile
+            slack.token = token;                       // authentication to post as and invidual (in this case an admin user is needed to inivite new members)
+            slack.wh = new slack.webhook(webhookURL, { // instantiate webhook (bot) w/ its url and profile
                 username: 'doorboto',                  // Name of bot
                 channel: channelToSentTo,              // channel that this intergration spams in particular
                 iconEmoji: ':robot_face:',             // icon emoji that bot uses for a profile picture
             });
-            slack.wh.send(startUpMsg);     // Notes that server just started or restarted
-        } catch(e){console.log('no connection to slack:' + e);} // handle not being connected
+            return true;                               // note succesful start up
+        } catch(error){                                // handle not being connected
+            console.log('no connection to slack:' + error);
+            return false;                              // note unsuccesfull start up
+        }
     },
     send: function(msg){
         try         {slack.wh.send(msg);}                                        // try to send
@@ -23,10 +25,9 @@ var slack = {
         slack.send(msg);
         console.log(msg);
     },
-    invite: function(email, newMember){
-        try { // there are no errors only unexpected results
-            var channels = '&channels=C050A22AL,C050A22B2,G2ADCCBAP,C0GB99JUF,C29L2UMDF,C0MHNCXGV,C1M5NRPB5,C14TZJQSY,C1M6THS3E,C1QCBJ5D3';
-            // Channels - general, random, who_at_the_space , 36_old_granite, talk_to_the_board, automotive, electronics, rapid p, wood, metal
+    invite: function(channels, email, newMember){
+        try {                                               // there are no errors only unexpected results
+            channels = '&channels=' + channels;             // prepend channel param w/ param indicator
             var emailReq = '&email=' + email;               // NOTE: has to be a valid email, no + this or that
             var inviteAddress = 'https://slack.com/api/users.admin.invite?token=' + slack.token + emailReq + channels;
             slack.request.post(inviteAddress, function(error, response, body){
@@ -46,7 +47,7 @@ var slack = {
             });
         } catch (e){slack.failedInvite(e);}                                      // fail softly in case there is no connection to outside
     },
-    failedInvite: function(error){console.log('slack: invite failed:' + error);} // common fail message
+    failedInvite: function(error){slack.sendAndLog('slack: invite failed:' + error);} // common fail message
 };
 
 module.exports = slack;
