@@ -109,6 +109,6 @@ var http = serve.theSite();                                  // set express midd
 sockets.listen(http);                                        // listen and handle socket connections
 http.listen(process.env.PORT);                               // listen on specified PORT enviornment variable
 // intilize slack bot to talk to x channel, with what channel it might use
-if(slack.init(process.env.SLACK_WEBHOOK_URL, env.BROADCAST_CHANNEL, process.env.SLACK_TOKEN)){
+if(slack.init(process.env.SLACK_WEBHOOK_URL, process.env.BROADCAST_CHANNEL, process.env.SLACK_TOKEN)){
     slack.send('IPN Restart, testing= ' + process.env.TESTING_STATE);
 }
