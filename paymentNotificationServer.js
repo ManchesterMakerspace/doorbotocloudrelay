@@ -53,28 +53,30 @@ var paypal = {
         };
     },
     listenEvent: function(req, res){
-        if(req.body){                             // given we have some body
-            res.status(200).send('OK');           // Step 1 ACK notification
-            res.end();                            // end response
-            var postreq = 'cmd=_notify-validate'; // step 2 read ipn message and prepend with _notify-validate and post back to paypal
-            for(var key in req.body){             // not quite sure that this is right
-                if(req.body.hasOwnProperty(key)){ // for all keys
-                    postreq = postreq + '&' + key + '=' + paypal.querystring.escape(req.body[key]); // build new post body
-                }
-            } // Prove they sent what they think they sent you, post it back to them
-            paypal.request(paypal.options(postreq), paypal.requestResponse(req.body));
+        if(req.body && req.body.reciever_email === process.env.PAYPAL_EMAIL){  // verify this payment is comming from a payment to our email
+            res.status(200).send('OK');                                        // Step 1 ACK notification
+            res.end();                                                         // end response
+            paypal.ack(req.body);                                              // ackknowlage post w/ return post
         }
+    },
+    ack: function(oBody){
+        var postreq = 'cmd=_notify-validate'; // step 2 read ipn message and prepend with _notify-validate and post back to paypal
+        for(var key in oBody){             // not quite sure that this is right
+            if(oBody.hasOwnProperty(key)){ // for all keys
+                postreq = postreq + '&' + key + '=' + paypal.querystring.escape(oBody[key]); // build new post body
+            }
+        } // Prove they sent what they think they sent you, post it back to them
+        paypal.request(paypal.options(postreq), paypal.requestResponse(oBody));
     },
     requestResponse: function(oBody){
         return function(error, response, body){
             if(error){
                 slack.sendAndLog('IPN response issue:' + error);
             } else if(response.statusCode === 200){
-                if(body.substring(0, 8) === 'VERIFIED'){
-                    var itemName = 'no item name';
-                    if(oBody.item_name){itemName = oBody.item_name;}
-                    else if (oBody.item_name1){itemName = oBody.item_name1;}
+                if(body.substring(0, 8) === 'VERIFIED' && oBody.payment_status === 'complete'){
+                    var itemName = 'item_name:' + oBody.itemName + ' or item_name1:' + oBody.item_name1;
                     console.log(JSON.stringify(oBody));   // get an idea of data we are dealing with
+                    // send oBody.txn_id to note transaction number, if number is same as an old one its invalid
                     slack.send('$'+ oBody.mc_gross +' pament for '+ itemName +' from '+ oBody.first_name +' '+ oBody.last_name);
                 } else if (body.substring(0, 7) === 'INVALID') {
                     slack.sendAndLog('Invalid IPN POST'); // IPN invalid, log for manual investigation
