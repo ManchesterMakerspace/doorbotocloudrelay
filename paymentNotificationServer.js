@@ -8,9 +8,11 @@ var sockets = {                                            // instantiate socket
     listen: function(server){                              // create server and setup on connection event
         sockets.server = sockets.server(server);           // pass in http server to connect to
         sockets.server.on('connection', function(socket){  // when a client connects
-            socket.on('authenticate', socket.authenticate(socket));// make sure who is trying to connect with us knows our secret
+            socket.on('renewed', function(info){slack.send(info.member + ' renewed for ' + info.months + ' months');});
+            // socket.on('authenticate', socket.authenticate(socket));// make sure who is trying to connect with us knows our secret
         });
     },
+    /* DRAFT CONCEPT
     authenticate: function(socket){ // not that it matters to much if you send it in plain text over the wire
         return function(token){
             if(token === process.env.DOORBOTO_TOKEN){ // make sure we are connected with one doorboto
@@ -31,7 +33,7 @@ var sockets = {                                            // instantiate socket
     disconnect: function(){
         sockets.doorbotoID = null; // takes doorbotos old socket.id out of memory to allow him to reconnect
         // make want to tell slack channel that doorboto just got disconnected
-    }
+    } */
 };
 
 var paypal = {
@@ -66,10 +68,8 @@ var paypal = {
     },
     requestResponse: function(oBody){
         return function(error, response, body){
-            console.log('response body:'+ JSON.stringify(body));
             if(error){slack.sendAndLog('IPN response issue:' + error);}
             else if(response.statusCode === 200){
-                console.log(JSON.stringify(oBody));       // get an idea of data we are dealing with
                 if(body.substring(0, 8) === 'VERIFIED'){
                     // send oBody.txn_id to note transaction number, if number is same as an old one its invalid
                     if(oBody.payment_status === 'Completed'){ // varify that this is a completed payment
