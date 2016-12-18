@@ -50,7 +50,7 @@ var paypal = {
                 res.status(200).send('OK');                                // ACK notification
                 res.end();                                                 // end response
                 console.log('original request body:'+ JSON.stringify(req.body));
-                if(req.body.reciever_email === process.env.PAYPAL_EMAIL){  // make sure we are meant to recieve this payment
+                if(req.body.receiver_email === process.env.PAYPAL_EMAIL){  // make sure we are meant to recieve this payment
                     var postreq = 'cmd=_notify-validate';    // read ipn message and prepend with _notify-validate and post back to paypal
                     for(var key in req.body){                // not quite sure that this is right its from an example
                         if(req.body.hasOwnProperty(key)){    // for all keys
