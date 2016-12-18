@@ -49,6 +49,7 @@ var paypal = {
             if(req.body){                                                  // verify payment is comming from a payment to our email
                 res.status(200).send('OK');                                // ACK notification
                 res.end();                                                 // end response
+                console.log('original request body:'+ JSON.stringify(req.body));
                 if(req.body.reciever_email === process.env.PAYPAL_EMAIL){  // make sure we are meant to recieve this payment
                     var postreq = 'cmd=_notify-validate';    // read ipn message and prepend with _notify-validate and post back to paypal
                     for(var key in req.body){                // not quite sure that this is right its from an example
@@ -58,7 +59,7 @@ var paypal = {
                     }    // Prove they sent what they think they sent you, post it back to them
                     paypal.request(paypal.options(postreq, responseURI), paypal.requestResponse(req.body));
                 } else { // log any funny business
-                    console.log('reciver email:' + req.body.reciever_email + ' is not equel to ' + process.env.PAYPAL_EMAIL);
+                    console.log('reciever email:' + req.body.receiver_email + ' is not equel to ' + process.env.PAYPAL_EMAIL);
                 }
             }
         };
