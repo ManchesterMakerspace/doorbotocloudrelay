@@ -73,7 +73,7 @@ var paypal = {
                 if(body.substring(0, 8) === 'VERIFIED'){
                     // send oBody.txn_id to note transaction number, if number is same as an old one its invalid
                     if(oBody.payment_status === 'Completed'){ // varify that this is a completed payment
-                        slack.send('$'+ oBody.mc_gross + ' pament for '+ oBody.itemName+' from '+ oBody.first_name +' '+ oBody.last_name);
+                        slack.send('$'+ oBody.mc_gross + ' pament for '+ oBody.item_name +' from '+ oBody.first_name +' '+ oBody.last_name);
                     } // send to renewal channel who just paid!
                 } else if (body.substring(0, 7) === 'INVALID') {
                     slack.sendAndLog('Invalid IPN POST'); // IPN invalid, log for manual investigation
