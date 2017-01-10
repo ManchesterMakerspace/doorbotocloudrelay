@@ -76,7 +76,7 @@ var paypal = {
                     if(oBody.payment_status === 'Completed'){ // varify that this is a completed payment
                         slack.send( '$'+ oBody.mc_gross + ' pament for '+ oBody.item_name +
                                     ' from '+ oBody.first_name +' '+ oBody.last_name +
-                                    ' if they are new, email them to get a new card:' + oBody.payer_email
+                                    ' ~ email:' + oBody.payer_email + ' <-contact them for card access if they are new'
                         );
                     } // send to renewal channel who just paid!
                 } else if (body.substring(0, 7) === 'INVALID') {
