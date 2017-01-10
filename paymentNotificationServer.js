@@ -8,7 +8,8 @@ var sockets = {                                            // instantiate socket
     listen: function(server){                              // create server and setup on connection event
         sockets.server = sockets.server(server);           // pass in http server to connect to
         sockets.server.on('connection', function(socket){  // when a client connects
-            socket.on('renewed', function(info){slack.send(info.member + ' renewed for ' + info.months + ' months');});
+            console.log(socket.id + ': connected to us');
+            // socket.on('renewed', function(info){slack.send(info.member + ' renewed for ' + info.months + ' months');});
             // socket.on('authenticate', socket.authenticate(socket));// make sure who is trying to connect with us knows our secret
         });
     },
