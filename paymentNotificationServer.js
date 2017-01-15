@@ -36,7 +36,7 @@ var socket = {                                                         // socket
         };
     },
     listservices: function(){
-        console.log(JSON.stringify(services));                         // log services ids and all
+        console.log(JSON.stringify(socket.services));                  // log services ids and all
         var slackMsg = 'services connected are ';                      // message to build on
         for(var i = 0; i < socket.services.length; i++){               // iterate through connected services
             slackMsg += socket.services[i].name;                       // add services name
@@ -53,11 +53,11 @@ var socket = {                                                         // socket
 };
 
 var payment = {
-    eventHandler: function(paidObj){                                   // handels all payments sorting them into different types
-        socket.authEmit('payment', paidObj);
-        slack.send( '$'+ paidObj.mc_gross + ' pament for '+ paidObj.item_name +
-                    ' from '+ paidObj.first_name +' '+ paidObj.last_name +
-                    ' ~ email:' + paidObj.payer_email + ' <-contact them for card access if they are new'
+    eventHandler: function(reciept){                                   // handels all payments sorting them into different types
+        socket.authEmit('payment', reciept);
+        slack.send( '$'+ reciept.mc_gross + ' pament for '+ reciept.item_name +
+                    ' from '+ reciept.first_name +' '+ reciept.last_name +
+                    ' ~ email:' + reciept.payer_email + ' <-contact them for card access if they are new'
         );
     }
 };
