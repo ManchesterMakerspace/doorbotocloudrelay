@@ -54,7 +54,7 @@ var socket = {                                                         // socket
 
 var payment = {
     eventHandler: function(paidObj){                                   // handels all payments sorting them into different types
-        socket.authEmit('genericPaid', paidObj);
+        socket.authEmit('payment', paidObj);
         slack.send( '$'+ paidObj.mc_gross + ' pament for '+ paidObj.item_name +
                     ' from '+ paidObj.first_name +' '+ paidObj.last_name +
                     ' ~ email:' + paidObj.payer_email + ' <-contact them for card access if they are new'
