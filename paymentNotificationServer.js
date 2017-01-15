@@ -1,40 +1,65 @@
 // paymentNotificationServer.js ~ Copyright 2016 Mancehster Makerspace ~ MIT License
 var slack = require('./our_modules/slack_intergration.js');// import our slack module
-var crypto = require('./our_modules/crypto.js');           // abstracted message scrambling
 
-var sockets = {                                            // instantiate socket server
-    server: require('socket.io'),                          // grab socket.io library
-    doorbotoID: null,
-    listen: function(server){                              // create server and setup on connection event
-        sockets.server = sockets.server(server);           // pass in http server to connect to
-        sockets.server.on('connection', function(socket){  // when a client connects
-            console.log(socket.id + ': connected to us');
-            // socket.on('renewed', function(info){slack.send(info.member + ' renewed for ' + info.months + ' months');});
-            // socket.on('authenticate', socket.authenticate(socket));// make sure who is trying to connect with us knows our secret
-        });
+var socket = {                                                         // socket.io singleton: handles socket server logic
+    services: [],                                                      // array of verified connected services / "emit to" whitelist
+    io: require('socket.io'),                                          // grab socket.io library
+    listen: function(httpServer, authToken){                           // create server and setup on connection events
+        socket.io = socket.io(httpServer);                             // specify http server to make connections w/ to get socket.io object
+        socket.io.on('connection', function(client){                   // client holds socket vars and methods for each connection event
+            slack.sendAndLog('client connected:'+ client.id);          // notify when clients get connected to be assured good connections
+            client.on('authenticate', socket.auth(client, authToken)); // initially clients can only ask to authenticate
+            // TODO maybe if we put a default disconnect event here it will get overwritten by auth ones when that event is executed
+        }); // basically we want to authorize our users before setting up event handlers for them or adding them to emit whitelist
     },
-    /* DRAFT CONCEPT
-    authenticate: function(socket){ // not that it matters to much if you send it in plain text over the wire
-        return function(token){
-            if(token === process.env.DOORBOTO_TOKEN){ // make sure we are connected with one doorboto
-                if(sockets.doorboto){                 // dafaq? will the real doorboto please stand up
-                    console.log('someone else wants to be doorboto?');
-                } else {                              // given this is one doorboto
-                    sockets.doorbotoID = socket.id;
-                    // socket.on('newMember', member.register);       // in event of new registration
-                    // socket.on('doorEvent', member.entry);
-                    socket.on('disconnect', sockets.doorbotoDisconnect);
-                }
-            } else {
-                console.log('Rando socket connected: ' + socket.id);
-                socket.on('disconnect', function(){console.log('Rando socket disconnected: ' + socket.id);});
+    auth: function(client, authToken){                                 // hold socketObj/key in closure, return callback to authorize user
+        return function(authPacket){                                   // data passed from service {token:"valid token", name:"of service"}
+            if(authPacket.token === authToken && authPacket.name){     // make sure we are connected w/ a trusted source with a name
+                var service = {id:client.id, name: authPacket.name};   // form a service object to hold on to
+                socket.services.push(service);                         // add service to array of currently connected services
+                socket.listservices();                                 // list services that are now currently connected to slack and log
+                client.on('slackMsg', function(msg){slack.send(msg);});// we trust these services, just relay messages to our slack channel
+                client.on('disconnect', socket.disconnect(service));   // remove service from service array on disconnect
+            } else {                                                   // in case token was wrong or name not provided
+                slack.sendAndLog('Rejected socket connection: ' + client.id);
+                client.on('disconnect', function(){
+                    slack.sendAndLog('Rejected socket disconnected: ' + client.id);
+                });
             }
         };
     },
-    disconnect: function(){
-        sockets.doorbotoID = null; // takes doorbotos old socket.id out of memory to allow him to reconnect
-        // make want to tell slack channel that doorboto just got disconnected
-    } */
+    disconnect: function(service){                                     // hold service information in closure
+        return function(){                                             // return a callback to be executed on disconnection
+            var index = socket.services.indexOf(service.id);           // figure index of service in service array
+            if(index > -1){socket.services.splice(index, 1);}          // given its there remove service from service array
+            else{console.log('disconnect error for:' + service.name);} // service is not there? Should never happen but w.e.
+        };
+    },
+    listservices: function(){
+        console.log(JSON.stringify(services));                         // log services ids and all
+        var slackMsg = 'services connected are ';                      // message to build on
+        for(var i = 0; i < socket.services.length; i++){               // iterate through connected services
+            slackMsg += socket.services[i].name;                       // add services name
+            if(i === socket.services.lenth - 1){ slackMsg += '.';}     // given last in array concat .
+            else                               { slackMsg += 'and ';}  // given not last in array concat and
+        }
+        slack.send(slackMsg);                                          // send message so that we know whos connected
+    },
+    authEmit: function(evnt, data){                                    // we only want to emit to services authorized to recieve data
+        for(var i = 0; i < socket.services.length; i++){               // for all connected services
+            socket.io.to(socket.services[i].id).emit(evnt, data);      // emit data for x event to indivdual socket in our array of services
+        }
+    }
+};
+
+var payment = {
+    eventHandler: function(paidObj){                                   // handels all payments sorting them into different types
+        socket.authEmit('genericPaid', paidObj);
+        slack.send( '$'+ paidObj.mc_gross + ' pament for '+ paidObj.item_name +
+                    ' from '+ paidObj.first_name +' '+ paidObj.last_name +
+                    ' ~ email:' + paidObj.payer_email + ' <-contact them for card access if they are new'
+        );
+    }
 };
 
 var paypal = {
@@ -74,13 +99,10 @@ var paypal = {
                 if(body.substring(0, 8) === 'VERIFIED'){
                     // send oBody.txn_id to note transaction number, if number is same as an old one its invalid
                     if(oBody.payment_status === 'Completed'){ // varify that this is a completed payment
-                        slack.send( '$'+ oBody.mc_gross + ' pament for '+ oBody.item_name +
-                                    ' from '+ oBody.first_name +' '+ oBody.last_name +
-                                    ' ~ email:' + oBody.payer_email + ' <-contact them for card access if they are new'
-                        );
-                    } // send to renewal channel who just paid!
+                        payment.eventHandler(oBody);          // pass original body to payment handler when we have verified a valid payment
+                    }                                         // send to renewal channel who just paid!
                 } else if (body.substring(0, 7) === 'INVALID') {
-                    slack.sendAndLog('Invalid IPN POST'); // IPN invalid, log for manual investigation
+                    slack.sendAndLog('Invalid IPN POST');     // IPN invalid, log for manual investigation
                 }
             } else {slack.sendAndLog('IPN post, other code: ' + response.statusCode);}
         };
@@ -94,7 +116,7 @@ var serve = {                                                // depends on cooki
         var app = serve.express();                           // create famework object
         var http = require('http').Server(app);              // http server for express frameworkauth)
         app.use(serve.parse.urlencoded({extended: true}));   // support URL-encoded bodies
-        app.use(serve.express.static(__dirname + '/views')); // serve page dependancies (sockets, jquery, bootstrap)
+        app.use(serve.express.static(__dirname + '/views')); // serve page dependancies (socket, jquery, bootstrap)
         var router = serve.express.Router();                 // create express router object to add routing events to
         router.get('/', function(req, res){res.send('Everything is going to be ok kid, Everythings going to be OKAY');});
         router.post('/ipnlistener', paypal.listenEvent('https://www.paypal.com/cgi-bin/webscr'));   // real listener post route
@@ -106,7 +128,7 @@ var serve = {                                                // depends on cooki
 };
 
 var http = serve.theSite();                                  // set express middleware and routes up
-sockets.listen(http);                                        // listen and handle socket connections
+socket.listen(http, process.env.AUTH_TOKEN);                // listen and handle socket connections
 http.listen(process.env.PORT);                               // listen on specified PORT enviornment variable
 // intilize slack bot to talk to x channel, with what channel it might use
 if(slack.init(process.env.SLACK_WEBHOOK_URL, process.env.BROADCAST_CHANNEL, process.env.SLACK_TOKEN)){
