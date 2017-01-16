@@ -30,18 +30,23 @@ var socket = {                                                         // socket
     },
     disconnect: function(service){                                     // hold service information in closure
         return function(){                                             // return a callback to be executed on disconnection
-            var index = socket.services.indexOf(service.id);           // figure index of service in service array
-            if(index > -1){socket.services.splice(index, 1);}          // given its there remove service from service array
-            else{console.log('disconnect error for:' + service.name);} // service is not there? Should never happen but w.e.
+            var index = socket.services.map(socket.returnID).indexOf(service.id); // figure index of service in service array
+            if(index > -1){
+                socket.services.splice(index, 1);                      // given its there remove service from service array
+                slack.send(service.name + ' was disconnected');        // give a warning when a service is disconnected
+            } else {
+                console.log('disconnect error for:' + service.name);  // service is not there? Should never happen but w.e.
+            }
         };
     },
+    returnID: function(each){return each.id;},                         // helper function for maping out ids from object arrays
     listservices: function(){
         console.log(JSON.stringify(socket.services));                  // log services ids and all
-        var slackMsg = 'services connected are ';                      // message to build on
+        var slackMsg = 'services connected, ';                      // message to build on
         for(var i = 0; i < socket.services.length; i++){               // iterate through connected services
             slackMsg += socket.services[i].name;                       // add services name
-            if(i === socket.services.lenth - 1){ slackMsg += '.';}     // given last in array concat .
-            else                               { slackMsg += 'and ';}  // given not last in array concat and
+            if(i === (socket.services.lenth - 1)){slackMsg+='.';}      // given last in array concat .
+            else                                 {slackMsg+=' and ';}  // given not last in array concat and
         }
         slack.send(slackMsg);                                          // send message so that we know whos connected
     },
@@ -54,11 +59,36 @@ var socket = {                                                         // socket
 
 var payment = {
     eventHandler: function(reciept){                                   // handels all payments sorting them into different types
-        socket.authEmit('payment', reciept);
+        var ourRecord = payment.simplify(reciept);
+        socket.authEmit('payment', ourRecord);
         slack.send( '$'+ reciept.mc_gross + ' pament for '+ reciept.item_name +
                     ' from '+ reciept.first_name +' '+ reciept.last_name +
                     ' ~ email:' + reciept.payer_email + ' <-contact them for card access if they are new'
         );
+    },
+    simplify: function(reciept){
+        var ourRecord = {  // standard information and default settings
+            product: reciept.item_name + ' ' + reciept.item_number,
+            firstname: reciept.first_name,
+            lastname: reciept.last_name,
+            amount: reciept.mc_gross,
+            currancy: reciept.mc_currency,
+            payment_date: reciept.payment_date,
+            payer_email: reciept.payer_email,
+            address: 'Not Provided',
+            txn_id: reciept.txn_id,            // use for varify against double paying
+            txn_type: reciept.txn_type,        // will show
+            test: false
+        };
+        // varify inconsistent information below
+        if(reciept.address_city && reciept.address_street){ // given there is at least a city and street address
+            ourRecord.address = reciept.address_fullname + ' ' + reciept.address_city + ' ' + reciept.address_city + ' ' +
+            reciept.address_state + ' ' + reciept.address_zip + ' ' + reciept.address_country_code;
+        }
+        if(!reciept.item_name){ourRecord.product = reciept.item_name1 + ' ' + reciept.item_number;}
+        if(reciept.test_ipn === 1){ourRecord.test = true;}
+        if(!reciept.payment_date){ourRecord.payment_date = new Date().toUTCString();} // We should always have a payment time
+        return ourRecord; // return simplified payment object that will be stored in our database
     }
 };
 
