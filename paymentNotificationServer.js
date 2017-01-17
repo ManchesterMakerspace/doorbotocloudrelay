@@ -42,10 +42,10 @@ var socket = {                                                         // socket
     returnID: function(each){return each.id;},                         // helper function for maping out ids from object arrays
     listservices: function(){
         console.log(JSON.stringify(socket.services));                  // log services ids and all
-        var slackMsg = 'services connected, ';                      // message to build on
+        var slackMsg = 'services connected, ';                         // message to build on
         for(var i = 0; i < socket.services.length; i++){               // iterate through connected services
             slackMsg += socket.services[i].name;                       // add services name
-            if(i === (socket.services.lenth - 1)){slackMsg+='.';}      // given last in array concat .
+            if(i === (socket.services.length - 1)){slackMsg+='.';}     // given last in array concat .
             else                                 {slackMsg+=' and ';}  // given not last in array concat and
         }
         slack.send(slackMsg);                                          // send message so that we know whos connected
