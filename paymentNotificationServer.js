@@ -7,7 +7,7 @@ var socket = {                                                         // socket
     listen: function(httpServer, authToken){                           // create server and setup on connection events
         socket.io = socket.io(httpServer);                             // specify http server to make connections w/ to get socket.io object
         socket.io.on('connection', function(client){                   // client holds socket vars and methods for each connection event
-            // slack.sendAndLog('client connected:'+ client.id);          // notify when clients get connected to be assured good connections
+            console.log('client connected:'+ client.id);               // notify when clients get connected to be assured good connections
             client.on('authenticate', socket.auth(client, authToken)); // initially clients can only ask to authenticate
             // TODO maybe if we put a default disconnect event here it will get overwritten by auth ones when that event is executed
         }); // basically we want to authorize our users before setting up event handlers for them or adding them to emit whitelist
@@ -17,7 +17,7 @@ var socket = {                                                         // socket
             if(authPacket.token === authToken && authPacket.name){     // make sure we are connected w/ a trusted source with a name
                 var service = {id:client.id, name: authPacket.name};   // form a service object to hold on to
                 socket.services.push(service);                         // add service to array of currently connected services
-                // socket.listservices();                                 // list services that are now currently connected to slack and log
+                console.log(socket.listservices());                    // list services that are now currently connected to slack and log
                 client.on('slackMsg', function(msg){slack.send(msg);});// we trust these services, just relay messages to our slack channel
                 client.on('disconnect', socket.disconnect(service));   // remove service from service array on disconnect
             } else {                                                   // in case token was wrong or name not provided
@@ -41,14 +41,13 @@ var socket = {                                                         // socket
     },
     returnID: function(each){return each.id;},                         // helper function for maping out ids from object arrays
     listservices: function(){
-        console.log(JSON.stringify(socket.services));                  // log services ids and all
         var slackMsg = 'services connected, ';                         // message to build on
         for(var i = 0; i < socket.services.length; i++){               // iterate through connected services
             slackMsg += socket.services[i].name;                       // add services name
             if(i === (socket.services.length - 1)){slackMsg+='.';}     // given last in array concat .
             else                                 {slackMsg+=' and ';}  // given not last in array concat and
         }
-        slack.send(slackMsg);                                          // send message so that we know whos connected
+        return slackMsg;                                               // send message so that we know whos connected
     },
     authEmit: function(evnt, data){                                    // we only want to emit to services authorized to recieve data
         for(var i = 0; i < socket.services.length; i++){               // for all connected services
@@ -158,9 +157,9 @@ var serve = {                                                // depends on cooki
 };
 
 var http = serve.theSite();                                  // set express middleware and routes up
-socket.listen(http, process.env.AUTH_TOKEN);                // listen and handle socket connections
+socket.listen(http, process.env.AUTH_TOKEN);                 // listen and handle socket connections
 http.listen(process.env.PORT);                               // listen on specified PORT enviornment variable
 // intilize slack bot to talk to x channel, with what channel it might use
 if(slack.init(process.env.SLACK_WEBHOOK_URL, process.env.BROADCAST_CHANNEL, process.env.SLACK_TOKEN)){
-    // slack.send('Payment listener woke up');
+    console.log('Payment listener woke up');
 } else {console.log('failed to connect to slack!');}
