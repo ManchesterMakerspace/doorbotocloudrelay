@@ -9,7 +9,6 @@ var socket = {                                                         // socket
         socket.io.on('connection', function(client){                   // client holds socket vars and methods for each connection event
             console.log('client connected:'+ client.id);               // notify when clients get connected to be assured good connections
             client.on('authenticate', socket.auth(client, authToken)); // initially clients can only ask to authenticate
-            // TODO maybe if we put a default disconnect event here it will get overwritten by auth ones when that event is executed
         }); // basically we want to authorize our users before setting up event handlers for them or adding them to emit whitelist
     },
     auth: function(client, authToken){                                 // hold socketObj/key in closure, return callback to authorize user
