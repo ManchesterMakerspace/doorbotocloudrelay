@@ -30,9 +30,10 @@ var socket = {                                                         // socket
     disconnect: function(service){                                     // hold service information in closure
         return function(){                                             // return a callback to be executed on disconnection
             var index = socket.services.map(socket.returnID).indexOf(service.id); // figure index of service in service array
+            var UTCString = new Date().toUTCString();                  // get a string of current time in est
             if(index > -1){
                 socket.services.splice(index, 1);                      // given its there remove service from service array
-                slack.send(service.name + ' was disconnected');        // give a warning when a service is disconnected
+                slack.send(service.name + ' was disconnected at ' + UTCString);   // give a warning when a service is disconnected
             } else {
                 console.log('disconnect error for:' + service.name);  // service is not there? Should never happen but w.e.
             }
