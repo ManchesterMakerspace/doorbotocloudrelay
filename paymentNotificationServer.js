@@ -1,22 +1,37 @@
 // paymentNotificationServer.js ~ Copyright 2016 Mancehster Makerspace ~ MIT License
-// var slack = require('./our_modules/slack_intergration.js');// import our slack module
 var slack = {
-    io: require('socket.io-client'),
+    io: require('socket.io-client'),                         // to connect to our slack intergration server
+    firstConnect: false,
+    connected: false,
     init: function(){
-        slack.io = slack.io(process.env.MASTER_SLACKER); // slack https server
-        slack.io.on('connect', function authenticate(){       // once we have connected to IPN lisner
-            slack.io.emit('authenticate', {
-                token: process.env.CONNECT_TOKEN,
-                slack: {
-                    username: 'Payment Listener',
-                    channel: 'renewals',
-                    iconEmoji: ':moneybag:'
-                }
-            }); // its important lisner know that we are for real
-        });
+        try {
+            slack.io = slack.io(process.env.MASTER_SLACKER); // slack https server
+            slack.firstConnect = true;
+        } catch (error){
+            console.log('could not connect to ' + process.env.MASTER_SLACKER + ' cause:' + error);
+            setTimeout(slack.init, 60000); // try again in a minute maybe we are disconnected from the network
+        }
+        if(slack.firstConnect){
+            slack.io.on('connect', function authenticate(){  // connect with masterslacker
+                slack.io.emit('authenticate', {
+                    token: process.env.CONNECT_TOKEN,
+                    slack: {
+                        username: 'Payment Listener',
+                        channel: 'renewals',
+                        iconEmoji: ':moneybag:'
+                    }
+                }); // its important lisner know that we are for real
+                slack.connected = true;
+            });
+            slack.io.on('disconnect', function disconnected(){slack.connected = false;});
+        }
     },
     send: function(msg){
-        slack.io.emit('msg', msg);
+        if(slack.connected){
+            slack.io.emit('msg', msg);
+        } else {
+            console.log('404:'+msg);
+        }
     }
 };
 
