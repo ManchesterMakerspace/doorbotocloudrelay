@@ -1,5 +1,24 @@
 // paymentNotificationServer.js ~ Copyright 2016 Mancehster Makerspace ~ MIT License
-var slack = require('./our_modules/slack_intergration.js');// import our slack module
+// var slack = require('./our_modules/slack_intergration.js');// import our slack module
+var slack = {
+    io: require(socket.io.client),
+    init: function(){
+        slack.io = slack.io(process.env.MASTER_SLACKER); // slack https server
+        socket.io.on('connect', function authenticate(){       // once we have connected to IPN lisner
+            socket.io.emit('authenticate', {
+                token: process.env.CONNECT_TOKEN,
+                slack: {
+                    username: 'Payment Listener',
+                    channel: 'renewals',
+                    iconEmoji: ':moneybag:'
+                }
+            }); // its important lisner know that we are for real
+        });
+    },
+    send: function(msg){
+        slack.io.emit('msg', msg);
+    }
+};
 
 var socket = {                                                         // socket.io singleton: handles socket server logic
     services: [],                                                      // array of verified connected services / "emit to" whitelist
@@ -20,9 +39,9 @@ var socket = {                                                         // socket
                 client.on('slackMsg', function(msg){slack.send(msg);});// we trust these services, just relay messages to our slack channel
                 client.on('disconnect', socket.disconnect(service));   // remove service from service array on disconnect
             } else {                                                   // in case token was wrong or name not provided
-                slack.sendAndLog('Rejected socket connection: ' + client.id);
+                slack.send('Rejected socket connection: ' + client.id);
                 client.on('disconnect', function(){
-                    slack.sendAndLog('Rejected socket disconnected: ' + client.id);
+                    slack.send('Rejected socket disconnected: ' + client.id);
                 });
             }
         };
@@ -123,7 +142,7 @@ var paypal = {
     requestResponse: function(oBody){
         return function(error, response, body){
             console.log('original request body:'+ JSON.stringify(oBody));
-            if(error){slack.sendAndLog('IPN response issue:' + error);}
+            if(error){slack.send('IPN response issue:' + error);}
             else if(response.statusCode === 200){
                 if(body.substring(0, 8) === 'VERIFIED'){
                     // send oBody.txn_id to note transaction number, if number is same as an old one its invalid
@@ -131,9 +150,9 @@ var paypal = {
                         payment.eventHandler(oBody);          // pass original body to payment handler when we have verified a valid payment
                     }                                         // send to renewal channel who just paid!
                 } else if (body.substring(0, 7) === 'INVALID') {
-                    slack.sendAndLog('Invalid IPN POST');     // IPN invalid, log for manual investigation
+                    slack.send('Invalid IPN POST');     // IPN invalid, log for manual investigation
                 }
-            } else {slack.sendAndLog('IPN post, other code: ' + response.statusCode);}
+            } else {slack.send('IPN post, other code: ' + response.statusCode);}
         };
     }
 };
@@ -156,10 +175,8 @@ var serve = {                                                // depends on cooki
     }
 };
 
+
+slack.init();                                                // intilize slack bot to talk to x channel, with what channel it might use
 var http = serve.theSite();                                  // set express middleware and routes up
 socket.listen(http, process.env.AUTH_TOKEN);                 // listen and handle socket connections
 http.listen(process.env.PORT);                               // listen on specified PORT enviornment variable
-// intilize slack bot to talk to x channel, with what channel it might use
-if(slack.init(process.env.SLACK_WEBHOOK_URL, process.env.BROADCAST_CHANNEL, process.env.SLACK_TOKEN)){
-    console.log('Payment listener woke up');
-} else {console.log('failed to connect to slack!');}
