@@ -1,7 +1,7 @@
 // paymentNotificationServer.js ~ Copyright 2016 Mancehster Makerspace ~ MIT License
 // var slack = require('./our_modules/slack_intergration.js');// import our slack module
 var slack = {
-    io: require(socket.io.client),
+    io: require('socket.io-client'),
     init: function(){
         slack.io = slack.io(process.env.MASTER_SLACKER); // slack https server
         socket.io.on('connect', function authenticate(){       // once we have connected to IPN lisner
