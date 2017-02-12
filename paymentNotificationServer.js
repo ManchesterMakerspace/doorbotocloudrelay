@@ -4,8 +4,8 @@ var slack = {
     io: require('socket.io-client'),
     init: function(){
         slack.io = slack.io(process.env.MASTER_SLACKER); // slack https server
-        socket.io.on('connect', function authenticate(){       // once we have connected to IPN lisner
-            socket.io.emit('authenticate', {
+        slack.io.on('connect', function authenticate(){       // once we have connected to IPN lisner
+            slack.io.emit('authenticate', {
                 token: process.env.CONNECT_TOKEN,
                 slack: {
                     username: 'Payment Listener',
