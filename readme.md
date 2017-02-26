@@ -14,11 +14,11 @@ to test locally? put this in an start.sh in this repos directory and chmod +x st
     export PORT=3000
     # token for folks to connect to us
     export AUTH_TOKEN="supersecretsecret"
-    export SOCKET_TOKEN
 
-    # master slacker https address
-    export MASTER_SLACKER="https://wateveryouslacerisnamed.herokuapp.com"
-    # token to connect to masterslacker
+    # slack information
+    export SLACK_WEBHOOK_URL="https://yourwebhooksurl"
+    export SLACK_TOKEN="adminTokenForSlack"
+    # token to connect via websockets
     export CONNECT_TOKEN="yourtokentoconnenttothemasterslacker"
 
     # auto restart on changes w/ nodemon
@@ -34,3 +34,7 @@ High overview notes
 * So fork or branch and make a pull request to production to deploy changes
 * Keep auto deploy in mind when adding configuration vars.
 * Pay attention to how TESTING_STATE environment variable is set, it determines whether it expect post from the paypal dev sandbox or paypal.
+
+### Using slack server
+
+[more details](slack.md)
