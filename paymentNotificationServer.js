@@ -1,157 +1,91 @@
 // paymentNotificationServer.js ~ Copyright 2016 Mancehster Makerspace ~ MIT License
-var ASPAYMENTLISTENER = 'paymentListener'; // distintive ids for server alter egos
-var ASMASTERSLACKER = 'masterSlacker';     // second role as slack server
-
-var bot = { // logic for adding a removing bot integrations
-    s: [], // array where we store properties and functions of connected sevices
-    create: function(packet, socketId){
-        var newBot = {
-            socketId: socketId,
-            disconnectMsg: packet.goodBye
-        };
-        if(packet.name){ // Original cloud relay case
-            newBot.username = packet.name;
-        } else {         // master slacker case
-            newBot.username = packet.slack.username;
-            newBot.iconEmoji = packet.slack.iconEmoji;
-            newBot.webhook = new slack.webhook(process.env.SLACK_WEBHOOK_URL, packet.slack);
-        }
-        bot.s.push(newBot);
-        slack.send(ASMASTERSLACKER)(newBot.username + ' just connected');
-    },
-    disconnect: function(socketId){                                             // hold socketId information in closure
-        return function socketDisconnect(){
-            bot.do(socketId, function removeBot(index){
-                var UTCString = new Date().toUTCString();                       // get a string of current time
-                console.log(bot.s[index].username+' disconnecting '+UTCString); // give a warning when a bot is disconnecting
-                slack.send(ASMASTERSLACKER)(bot.s[index].username + ' is disconnecting');
-                if(bot.s[index].disconnectMsg){
-                    bot.s[index].webhook.send(bot.s[index].disconnectMsg);      // one last thing wont happen on falling asleep
-                }
-                bot.s.splice(index, 1);                                         // given its there remove bot from bots array
-            });
-        };
-    },
-    do: function(socketId, foundCallback){               // executes a callback with one of our bots based on socket id
-        var botNumber = bot.s.map(function(eachBot){
-            return eachBot.socketId;
-        }).indexOf(socketId);                            // figure index bot in our bots array
-        if(botNumber > -1){                              // NOTE we remove bots keeping ids in closure would be inaccurate
-            foundCallback(botNumber);                    // part where do happens
-        } else {
-            console.log(socketId + ':found no bot?');    // service is not there? Should never happen but w.e.
-        }
-    },
-    listEm: function(){
-        var msg = 'services connected, ';                // message to build on
-        for(var i = 0; i < bot.s.length; i++){           // iterate through connected services
-            msg += bot.s[i].username;                    // add services name
-            if(i === (bot.s.length - 1)){msg+='.';}      // given last in array concat .
-            else                        {msg+=' and ';}  // given not last in array concat and
-        }
-        return msg;                                      // send message so that we know whos connected
-    }
-};
-
 var slack = {
-    webhook: require('@slack/client').IncomingWebhook,   // url to slack intergration called "webhook" can post to any channel as a "bot"
+    io: require('socket.io-client'),                         // to connect to our slack intergration server
+    firstConnect: false,
+    connected: false,
     init: function(){
-        var paymentListener = {                          // webhook object to act as payment Listener
-            slack: {
-                username: 'Payment Listener',
-                channel: 'renewals',
-                iconEmoji: ':moneybag:'
-            }
-        };
-        var masterSlacker = {                            // webhook object to act as slack intergration server
-            slack: {
-                username: 'Doorboto Cloud Relay',
-                channel: 'master_slacker',
-                iconEmoji: ':slack:'
-            }
-        };
-        bot.create(paymentListener, ASPAYMENTLISTENER);  // create internal intergration array items
-        bot.create(masterSlacker, ASMASTERSLACKER);
+        try {
+            slack.io = slack.io(process.env.MASTER_SLACKER); // slack https server
+            slack.firstConnect = true;
+        } catch (error){
+            console.log('could not connect to ' + process.env.MASTER_SLACKER + ' cause:' + error);
+            setTimeout(slack.init, 60000); // try again in a minute maybe we are disconnected from the network
+        }
+        if(slack.firstConnect){
+            slack.io.on('connect', function authenticate(){  // connect with masterslacker
+                slack.io.emit('authenticate', {
+                    token: process.env.CONNECT_TOKEN,
+                    slack: {
+                        username: 'Payment Listener',
+                        channel: 'renewals',
+                        iconEmoji: ':moneybag:'
+                    }
+                }); // its important lisner know that we are for real
+                slack.connected = true;
+            });
+            slack.io.on('disconnect', function disconnected(){slack.connected = false;});
+        }
     },
-    send: function(socketId){
-        return function msgEvent(msg){
-            bot.do(socketId, function gotBot(botNumber){
-                bot.s[botNumber].webhook.send(msg);
-            });
-        };
-    },
-    pm: function(socketId){
-        return function pmMember(pmPayload){
-            bot.do(socketId, function myBot(botNumber){
-                var tempHook = new slack.webhook(process.env.SLACK_WEBHOOK_URL, {
-                    username: bot.s[botNumber].username,    // reuse name of bot
-                    channel: '@' + pmPayload.userhandle,    // note that we dont need @ as just name is stored in our db
-                    iconEmoji: bot.s[botNumber].iconEmoji,  // reuse handle
-                });
-                tempHook.send(pmPayload.msg); // send pm
-            });
-        };
-    }
-};
-
-// NOTE cannels and groups are distinctely differant. Groups are private denoted in folling ids with a 'g'. Channels can be joined by any invited team member
-//  groups                                                whosAtTheSpace                                                                  Ourfrontdor
-var AUTO_INVITE_CHANNELS = '&channels=C050A22AL,C050A22B2,G2ADCCBAP,C0GB99JUF,C29L2UMDF,C0MHNCXGV,C1M5NRPB5,C14TZJQSY,C1M6THS3E,C1QCBJ5D3,G391Q3DGX';
-var slackAdmin = {                                                         // uses slack api for adminastrative functions (needs admin token)
-    request: require('request'),                                           // needed to make post request to slack api
-    invite: function(socketId){
-        return function onInvite(email){
-            bot.do(socketId, function foundbot(botNumber){
-                var request = '&email=' + email + AUTO_INVITE_CHANNELS;    // NOTE: has to be a valid email, no + this or that
-                var inviteAPIcall = 'https://slack.com/api/users.admin.invite?token=' + process.env.SLACK_TOKEN + requets;
-                slackAdmin.request.post(inviteAPIcall, function requestRes(error, response, body){
-                    var msg = 'NOT MADE';                                                // default to returning a possible error message
-                    if(error){msg = 'request error:' + error;}  // post request error
-                    else if (response.statusCode == 200){                          // give a good status code
-                        body = JSON.parse(body);
-                        if(body.ok){                                               // check if reponse body ok
-                            msg = 'invite pending';                                // if true, success!
-                        } else {                                                   // otherwise
-                            if(body.error){msg = ' response error ' + body.error;} // log body error
-                        }
-                    } else { msg = 'error status ' + response.statusCode; }        // log different status code maybe expecting possible 404 not found or 504 timeout
-                    bot.s[botNumber].webhook.send(msg);
-                });
-            });
-        };
+    send: function(msg){
+        if(slack.connected){
+            slack.io.emit('msg', msg);
+        } else {
+            console.log('404:'+msg);
+        }
     }
 };
 
 var socket = {                                                         // socket.io singleton: handles socket server logic
+    services: [],                                                      // array of verified connected services / "emit to" whitelist
     io: require('socket.io'),                                          // grab socket.io library
-    listen: function(server){                                          // create server and setup on connection events
-        socket.io = socket.io(server);                                 // specify http server to make connections w/ to get socket.io object
+    listen: function(httpServer, authToken){                           // create server and setup on connection events
+        socket.io = socket.io(httpServer);                             // specify http server to make connections w/ to get socket.io object
         socket.io.on('connection', function(client){                   // client holds socket vars and methods for each connection event
             console.log('client connected:'+ client.id);               // notify when clients get connected to be assured good connections
-            client.on('authenticate', socket.auth(client));            // initially clients can only ask to authenticate
+            client.on('authenticate', socket.auth(client, authToken)); // initially clients can only ask to authenticate
         }); // basically we want to authorize our users before setting up event handlers for them or adding them to emit whitelist
     },
-    auth: function(client){                                                   // hold socketObj/key in closure, return callback to authorize user
-        return function(authPacket){                                          // data passed from service {token:"valid token", name:"of service"}
-                                                                              // make sure we are connected w/ a trusted source with a name
-            if(authPacket.token === process.env.AUTH_TOKEN && (authPacket.slack.username || authPacket.name)){
-                bot.create(authPacket, client.id);                            // add all authorized connections to an array
-                client.on('msg', slack.send(client.id));                      // Send slack message on behalf of this service as this service
-                client.on('slackMsg', slack.send(ASPAYMENTLISTENER));         // relay this message as payment listener
-                client.on('invite', slackAdmin.invite(client.id));            // invite new members to slack
-                client.on('pm', slack.pm(client.id));                         // personal message members
-                client.on('disconnect', bot.disconnect(client.id));           // remove service from bots array on disconnect
-            } else {                                                          // in case token was wrong or name not provided
-                console.log('Rejected socket connection: ' + client.id);
+    auth: function(client, authToken){                                 // hold socketObj/key in closure, return callback to authorize user
+        return function(authPacket){                                   // data passed from service {token:"valid token", name:"of service"}
+            if(authPacket.token === authToken && authPacket.name){     // make sure we are connected w/ a trusted source with a name
+                var service = {id:client.id, name: authPacket.name};   // form a service object to hold on to
+                socket.services.push(service);                         // add service to array of currently connected services
+                console.log(socket.listservices());                    // list services that are now currently connected to slack and log
+                client.on('slackMsg', function(msg){slack.send(msg);});// we trust these services, just relay messages to our slack channel
+                client.on('disconnect', socket.disconnect(service));   // remove service from service array on disconnect
+            } else {                                                   // in case token was wrong or name not provided
+                slack.send('Rejected socket connection: ' + client.id);
                 client.on('disconnect', function(){
-                    console.log('Rejected socket disconnected: ' + client.id);
+                    slack.send('Rejected socket disconnected: ' + client.id);
                 });
             }
         };
     },
-    authEmit: function(evnt, data){                      // we only want to emit to services authorized to recieve data
-        for(var i = 0; i < bot.s.length; i++){           // for all connected services
-            socket.io.to(bot.s[i].id).emit(evnt, data);  // emit data for x event to indivdual socket in our array of services
+    disconnect: function(service){                                     // hold service information in closure
+        return function(){                                             // return a callback to be executed on disconnection
+            var index = socket.services.map(socket.returnID).indexOf(service.id); // figure index of service in service array
+            var UTCString = new Date().toUTCString();                  // get a string of current time in est
+            if(index > -1){
+                socket.services.splice(index, 1);                      // given its there remove service from service array
+                slack.send(service.name + ' was disconnected at ' + UTCString);   // give a warning when a service is disconnected
+            } else {
+                console.log('disconnect error for:' + service.name);  // service is not there? Should never happen but w.e.
+            }
+        };
+    },
+    returnID: function(each){return each.id;},                         // helper function for maping out ids from object arrays
+    listservices: function(){
+        var slackMsg = 'services connected, ';                         // message to build on
+        for(var i = 0; i < socket.services.length; i++){               // iterate through connected services
+            slackMsg += socket.services[i].name;                       // add services name
+            if(i === (socket.services.length - 1)){slackMsg+='.';}     // given last in array concat .
+            else                                 {slackMsg+=' and ';}  // given not last in array concat and
+        }
+        return slackMsg;                                               // send message so that we know whos connected
+    },
+    authEmit: function(evnt, data){                                    // we only want to emit to services authorized to recieve data
+        for(var i = 0; i < socket.services.length; i++){               // for all connected services
+            socket.io.to(socket.services[i].id).emit(evnt, data);      // emit data for x event to indivdual socket in our array of services
         }
     }
 };
@@ -247,7 +181,7 @@ var serve = {                                                // depends on cooki
         app.use(serve.parse.urlencoded({extended: true}));   // support URL-encoded bodies
         app.use(serve.express.static(__dirname + '/views')); // serve page dependancies (socket, jquery, bootstrap)
         var router = serve.express.Router();                 // create express router object to add routing events to
-        router.get('/', function(req, res){res.send(bot.listEm());});                               // list connected bots
+        router.get('/', function(req, res){res.send('Everything is going to be ok kid, Everythings going to be OKAY');});
         router.post('/ipnlistener', paypal.listenEvent('https://www.paypal.com/cgi-bin/webscr'));   // real listener post route
         router.post('/sand', paypal.listenEvent('https://www.sandbox.paypal.com/cgi-bin/webscr'));  // test with paypal's IPN simulator
         router.post('/test', paypal.listenEvent('http://localhost:8378/test'));                     // test w/ a local IPN simulator
@@ -256,7 +190,8 @@ var serve = {                                                // depends on cooki
     }
 };
 
+
 slack.init();                                                // intilize slack bot to talk to x channel, with what channel it might use
 var http = serve.theSite();                                  // set express middleware and routes up
-socket.listen(http);                                         // listen and handle socket connections
+socket.listen(http, process.env.AUTH_TOKEN);                 // listen and handle socket connections
 http.listen(process.env.PORT);                               // listen on specified PORT enviornment variable
