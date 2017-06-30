@@ -149,7 +149,7 @@ var paypal = {
                     }    // Prove they sent what they think they sent you, post it back to them
                     paypal.request(paypal.options(postreq, responseURI), paypal.requestResponse(req.body));
                 } else { // log any funny business
-                    console.log('reciever email:' + req.body.receiver_email + ' is not equel to ' + process.env.PAYPAL_EMAIL);
+                    slack.send('reciever email:' + req.body.receiver_email + ' is not equel to ' + process.env.PAYPAL_EMAIL);
                 }
             }
         };
