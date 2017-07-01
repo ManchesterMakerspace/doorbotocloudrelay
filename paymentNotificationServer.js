@@ -37,7 +37,7 @@ var slack = {
 
 var mongo = { // depends on: mongoose
     ose: require('mongoose'),
-    init: function(){
+    init: function(db_uri){
         mongo.ose.connect(db_uri);                                            // connect to our database
         var reqMsg = '{PATH} is required';                                    // warning message for required feilds
         var paymentSchema = new mongo.ose.Schema({                            // model of what payment documents will look like
