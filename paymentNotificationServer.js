@@ -54,7 +54,7 @@ var mongo = { // depends on: mongoose
             txn_type: {type: String, required: reqMsg},                       // can indicate failed payments sometimes
             test: {type: Boolean}                                             // was this sent by as simulation or is it real life
         }, {collection: 'general'});                                          // because otherwise mongoose thinks its smart
-        mongo.ose.model('general', paymentSchema);
+        mongo.general = mongo.ose.model('general', paymentSchema);
     },
     // basically we have a seperate db for payments that have collections of different types of paypents that are using same model
     saveNewDoc: function(Model, docToSave, errorFunction, successFunction){   // helper method goes through boilerplate save motions
