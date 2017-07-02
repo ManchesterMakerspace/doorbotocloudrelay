@@ -69,7 +69,7 @@ var mongo = { // depends on: mongoose
 var payment = {
     eventHandler: function(reciept){                                   // handels all payments sorting them into different types
         var ourRecord = payment.simplify(reciept);
-        mongo.saveNewDoc(mongo.general, reciept, function fail(error){
+        mongo.saveNewDoc(mongo.general, ourRecord, function fail(error){
             slack.send('error saving payment ' + error);
         }, function success(){
             slack.send('Payment saved to mLab server');
